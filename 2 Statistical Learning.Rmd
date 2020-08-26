@@ -22,3 +22,9 @@ output:
   + do not make explicit assumptions about functional form
   + estimate _f_ that gets as close to the data points without being too rough or wiggly
   + usually require large amounts of data
+  
+**Generally want model to minimize test MSE to determine if our model is accurate**
+
+* Bias-Variance Trade-Off
+  + 
+  
