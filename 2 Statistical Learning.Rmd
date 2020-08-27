@@ -12,12 +12,12 @@ output:
 * Inference
   + Which predictors associated with response?
   + what is the relationship between response and each predictor?
-  + can the relationship between Y and each predictor be adequately using a particular model? or is it more complex
-
+  + can the relationship between Y and each predictor be adequately using a particular model? or is it more complex  
+  
 * Parametric Methods
   + make assumption of functional form
   + use training data to fit/train the model (OLS)
-
+        
 * Non-Parametric Methods
   + do not make explicit assumptions about functional form
   + estimate _f_ that gets as close to the data points without being too rough or wiggly
@@ -26,5 +26,9 @@ output:
 **Generally want model to minimize test MSE to determine if our model is accurate**
 
 * Bias-Variance Trade-Off
-  + 
+  + variance refers to amount by which _f_ would change if estimated using different training set
+  + bias refers to error introduced by approiximated the problem to a particular model
   
+  
+
+
