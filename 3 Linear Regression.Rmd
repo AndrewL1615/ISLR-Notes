@@ -1,0 +1,15 @@
+---
+title: "3. Linear Regression"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Simple Linear Regression
+
+Y = $\beta_{0} + \beta_{1}X_{1}$ 
+
+  + assuming relationship between X and Y are linear
+  
+
+
