@@ -27,7 +27,7 @@ output:
 
 * Bias-Variance Trade-Off
   + variance refers to amount by which _f_ would change if estimated using different training set
-  + bias refers to error introduced by approiximated the problem to a particular model
+  + bias refers to error introduced by approximated the problem to a particular model
   
   
 

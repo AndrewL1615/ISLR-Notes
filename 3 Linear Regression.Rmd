@@ -9,7 +9,34 @@ output:
 
 Y = $\beta_{0} + \beta_{1}X_{1}$ 
 
++ coefficients are minimized using ordinary least squares (OLS)
+
+
+* **Important Assumptions**
   + assuming relationship between X and Y are linear
+  + errors have constant variance (homoescedasticity)
+  + errors are normally distributed with mean 0 (approximate)
+  + errors independent of each other
   
+* **Assessing model fit**
+  + Residual Standard Error (RSE) = estimate of the SE of error term
+    + measured in units of Y
+  + $R^2$ statistic
+    + will always increase if more variables are added
+  
+## Multiple Linear Regression
 
+Y = $\beta_{0} + \beta_{1}X_{1} + \beta_{2}X_{2} + \cdots + \beta_{p}X_{p}$
 
+* F-statistics used for MLR from the independent variables to reject null
+
+* qualitiative predictors can be represented with dummy variables
+
+* Polynomial regressions allow us to add non-linear relationships between predictor and response, but model overall is still linear
+
+* potential issues (in addition to those of linear regression)
+  + correlation of error terms
+  + outliers
+  + high-leverage points
+  + collinearity/multicollinearity 
+    + use variance inflation factor (VIF) to solve this
