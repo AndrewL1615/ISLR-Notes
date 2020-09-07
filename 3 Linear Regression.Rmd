@@ -14,7 +14,7 @@ Y = $\beta_{0} + \beta_{1}X_{1}$
 
 * **Important Assumptions**
   + assuming relationship between X and Y are linear
-  + errors have constant variance (homoescedasticity)
+  + errors have constant variance (homoscedasticity)
   + errors are normally distributed with mean 0 (approximate)
   + errors independent of each other
   
@@ -37,6 +37,39 @@ Y = $\beta_{0} + \beta_{1}X_{1} + \beta_{2}X_{2} + \cdots + \beta_{p}X_{p}$
 * potential issues (in addition to those of linear regression)
   + correlation of error terms
   + outliers
-  + high-leverage points
+  + high-leverage point
   + collinearity/multicollinearity 
     + use variance inflation factor (VIF) to solve this
+
+## Exercises
+```{r, eval=T, include=T}
+#create a function that loads ISLR datasets
+LoadLibraries = function (){
+  library(ISLR)
+  library(MASS)
+  print("Libraries have been loaded")
+}
+LoadLibraries()
+```
+
+**8**
+```{r, eval=TRUE, include=T}
+slr <- lm(mpg~horsepower, data = Auto)
+summary(slr)
+```
+It seems that the predictor horsepower is significant with a negative t value and very low p value
+
+```{r}
+predict(slr, data.frame(horsepower = 98), interval = "confidence")
+```
+```{r}
+plot(Auto$horsepower, Auto$mpg)
+abline(reg = slr, col = "red") #regression line
+plot(slr) #diagnoistics plots 
+```
+**10**
+```{r}
+mlr <- lm(Sales~Price + Urban + US, data = Carseats)
+summary(mlr)
+```
+Note that both Urban and US predictors are qualitative
