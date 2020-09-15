@@ -5,3 +5,32 @@ output:
     df_print: paged
 ---
 
+$\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_{p}$
+
+* left-hand side is log odds
+* uses maximum likelihood to estimate coefficients
+* one unit increase in an independent variable is associated with an increase in the log odds of the variable by its coefficient
+
+### **Linear Discriminant Analysis (LDA)**
+  + popular used when more than 2 response classes
+  + if n is small and X is approximately normal
+  + uses Bayes Theorem to estimate $Pr(Y = k|X = x)$
+  
+* $Pr(Y = k|X = x) = \frac{\pi_{k}f_{k}(x)}{\sum_{l = 1}^{K} \pi_{l}f_{l}(x)}$
+  + where there are K classes
+  + where $\pi_{k}$ is prior probability that a randomly chosen observation comes from the kth class
+  + where $f_{k}(x) = Pr(X=x|Y=y)$ is the desnity function of X from the kth class
+
+* assumes predictor variables come from normal (or multivariate normal) distribution
+* class-specific mean vector and covariance matrix that is common to all K classes
+* can modify threshold of boundary decisions
+  
+* Confusion Matrix used to count number of correctly/incorrectly predicted outcomes
+
+### **Quadratic Discriminant Analysis (QDA)**
+  + also assumes observations from each class are normally distributed
+  + assumes each class has its own covariance matrix
+  + more flexible classifier than LDA
+  + recommended if training set is very large
+  
+#### **Logistic and LDA both produce linear decision boundaries, while QDA and KNN classifiers have higher flexibility and lower bias

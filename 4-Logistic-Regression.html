@@ -1637,7 +1637,42 @@ summary {
 </div>
 
 
-
+<p><span class="math inline">\(\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_{p}\)</span></p>
+<ul>
+<li>left-hand side is log odds</li>
+<li>uses maximum likelihood to estimate coefficients</li>
+<li>one unit increase in an independent variable is associated with an increase in the log odds of the variable by its coefficient</li>
+</ul>
+<div id="linear-discriminant-analysis-lda" class="section level3">
+<h3><strong>Linear Discriminant Analysis (LDA)</strong></h3>
+<ul>
+<li><p>popular used when more than 2 response classes</p></li>
+<li><p>if n is small and X is approximately normal</p></li>
+<li><p>uses Bayes Theorem to estimate <span class="math inline">\(Pr(Y = k|X = x)\)</span></p></li>
+<li><p><span class="math inline">\(Pr(Y = k|X = x) = \frac{\pi_{k}f_{k}(x)}{\sum_{l = 1}^{K} \pi_{l}f_{l}(x)}\)</span></p>
+<ul>
+<li>where there are K classes</li>
+<li>where <span class="math inline">\(\pi_{k}\)</span> is prior probability that a randomly chosen observation comes from the kth class</li>
+<li>where <span class="math inline">\(f_{k}(x) = Pr(X=x|Y=y)\)</span> is the desnity function of X from the kth class</li>
+</ul></li>
+<li><p>assumes predictor variables come from normal (or multivariate normal) distribution</p></li>
+<li><p>class-specific mean vector and covariance matrix that is common to all K classes</p></li>
+<li><p>can modify threshold of boundary decisions</p></li>
+<li><p>Confusion Matrix used to count number of correctly/incorrectly predicted outcomes</p></li>
+</ul>
+</div>
+<div id="quadratic-discriminant-analysis-qda" class="section level3">
+<h3><strong>Quadratic Discriminant Analysis (QDA)</strong></h3>
+<ul>
+<li>also assumes observations from each class are normally distributed</li>
+<li>assumes each class has its own covariance matrix</li>
+<li>more flexible classifier than LDA</li>
+<li>recommended if training set is very large</li>
+</ul>
+<div id="logistic-and-lda-both-produce-linear-decision-boundaries-while-qda-and-knn-classifiers-have-higher-flexibility-and-lower-bias" class="section level4">
+<h4>**Logistic and LDA both produce linear decision boundaries, while QDA and KNN classifiers have higher flexibility and lower bias</h4>
+</div>
+</div>
 
 
 
