@@ -1,0 +1,7 @@
+---
+title: "4 Logistic Regression"
+output:
+  html_document:
+    df_print: paged
+---
+
