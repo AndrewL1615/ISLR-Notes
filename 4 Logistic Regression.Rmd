@@ -19,7 +19,7 @@ $\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_
 * $Pr(Y = k|X = x) = \frac{\pi_{k}f_{k}(x)}{\sum_{l = 1}^{K} \pi_{l}f_{l}(x)}$
   + where there are K classes
   + where $\pi_{k}$ is prior probability that a randomly chosen observation comes from the kth class
-  + where $f_{k}(x) = Pr(X=x|Y=y)$ is the desnity function of X from the kth class
+  + where $f_{k}(x) = Pr(X=x|Y=y)$ is the density function of X from the kth class
 
 * assumes predictor variables come from normal (or multivariate normal) distribution
 * class-specific mean vector and covariance matrix that is common to all K classes
@@ -34,3 +34,87 @@ $\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_
   + recommended if training set is very large
   
 #### **Logistic and LDA both produce linear decision boundaries, while QDA and KNN classifiers have higher flexibility and lower bias
+
+# Applied
+
+**10)**
+```{r}
+library(ISLR)
+library(tidyverse)
+
+#plot(Weekly) #there seems to be a noticeable relationship between Volume and Year
+cor(Weekly[,-9])
+plot(Weekly$Year, Weekly$Volume)
+
+#Logistic Regression
+week.glm <- glm(Direction~. - Year - Today, data = Weekly, family = "binomial"); summary(week.glm)
+week.probs <- predict(week.glm, type = "response")
+week.pred <- rep("Down", times = nrow(Weekly)) #create vector of # of down elements = Weekly rows
+week.pred[week.probs > .5] = "Up" #transform elements to up for which the corresponding prob. is >.5,
+week.cm <- table(week.pred, Weekly$Direction) #confusion matrix
+```
+It seems that only Lag2 seems significant
+
+```{r}
+week.cm
+
+#correct classifications
+week.correct <- sum(diag(week.cm))/sum(week.cm); week.correct
+
+#incorrect classifications
+week.incorrect <- sum(diag(week.cm[nrow(week.cm):1,]))/sum(week.cm); week.incorrect
+```
+The overall fraction of correct predictions is about .561
+
+```{r}
+#train/test using Lag2 as only predictor
+train <- (Weekly$Year < 2009) #years before 2008 are set to TRUE, while after set to FALSE
+test <- Weekly[!train,]
+direction <- Weekly$Direction[!train] #true response values used to compare to test data
+
+week.fit <- glm(Direction~Lag2, data = Weekly, family = "binomial", subset = train); summary(week.fit)
+week.probs2 <- predict(week.fit, test, type = "response")
+
+week.pred2 <- rep("Down", nrow(test))
+week.pred2[week.probs2 > .5] <- "Up"
+week.cm2 <- table(week.pred2, direction)
+week.correct2 <- sum(diag(week.cm2))/sum(week.cm2); week.correct2
+```
+The correct rate of this model is .625, which is slightly better than the model with all variables
+
+```{r}
+#LDA
+library(MASS)
+
+lda.fit <- lda(Direction~Lag2, data = Weekly, subset = train); lda.fit
+lda.pred <- predict(lda.fit, test)
+
+lda.class <- lda.pred$class
+
+table(lda.class, direction)
+mean(lda.class == direction)
+```
+
+```{r}
+#QDA
+
+qda.fit <- qda(Direction~Lag2, data = Weekly, subset = train); qda.fit
+
+qda.class <- predict(qda.fit,test)$class
+table(qda.class,direction)
+mean(qda.class == direction)
+```
+```{r}
+#KNN
+library(class)
+
+train.k <- Weekly[train, c("Lag2","Direction")]
+test.k <- Weekly[!train, c("Lag2","Direction")] 
+
+set.seed(1)
+knn.pred <- knn(train = data.frame(train.k$Lag2),test = data.frame(test.k$Lag2), train.k$Direction, k = 1)
+
+table(knn.pred, direction)
+mean(knn.pred == direction)
+```
+It seems that LDA and Logistic performed the best
