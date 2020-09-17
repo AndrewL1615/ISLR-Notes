@@ -1,0 +1,7 @@
+---
+title: "5 Resampling Methods"
+output:
+  html_document:
+    df_print: paged
+---
+
