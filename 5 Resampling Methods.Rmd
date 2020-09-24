@@ -4,4 +4,36 @@ output:
   html_document:
     df_print: paged
 ---
+* Used in the absence of very large designated test set (which is very commmon)
 
+# Cross Validation (CV)
+
+* Leave-One-Out CV
+  + using a single observation $(x_{i},y_{i})$ for the validation set while remaining observations make up training set
+  + and thus $MSE_{i} = (y_{i}-\hat{y}_{i})^2$
+  + repeating this n times, we get the test MSE is the avg of n test error estimates:
+  
+$$CV_{(n)} = \frac{1}{n}\sum_{i=1}^{n} MSE_{i}$$
+
+  + doesn't tend to overestimate test error
+  + will always yield same results since there is no randomness in training/validation set splits
+  
+* k-Fold CV
+  + randomly dividing observations in to k groups of equal/approximate size
+  + first fold treated as validation set, and method is fit on remaining k-1 folds
+  + calculate MSE on held-out folds, up to k times
+  + averaging these MSEs we get:
+  
+$$CV_{(k)} = \frac{1}{k}\sum_{i=1}^k MSE_{i}$$
+
+  + k = 5 or 10 usually
+  
+* bias-variance trade-off in CV
+  + from a bias reduction POV, LOOCV is preferred to k-fold
+  + from a variance reduction POV, k < n folds CV is preferred
+  
+* for classification problems, we use misclassified observations instead of MSE
+
+# Bootstrap
+
+* obtain distinct data sets by repeatedly sampling observations with replacement from the original data set

@@ -1637,7 +1637,41 @@ summary {
 </div>
 
 
-
+<ul>
+<li>Used in the absence of very large designated test set (which is very commmon)</li>
+</ul>
+<div id="cross-validation-cv" class="section level1">
+<h1>Cross Validation (CV)</h1>
+<ul>
+<li>Leave-One-Out CV
+<ul>
+<li>using a single observation <span class="math inline">\((x_{i},y_{i})\)</span> for the validation set while remaining observations make up training set</li>
+<li>and thus <span class="math inline">\(MSE_{i} = (y_{i}-\hat{y}_{i})^2\)</span></li>
+<li>repeating this n times, we get the test MSE is the avg of n test error estimates:</li>
+</ul></li>
+</ul>
+<p><span class="math display">\[CV_{(n)} = \frac{1}{n}\sum_{i=1}^{n} MSE_{i}\]</span></p>
+<ul>
+<li><p>doesn’t tend to overestimate test error</p></li>
+<li><p>will always yield same results since there is no randomness in training/validation set splits</p></li>
+<li><p>k-Fold CV</p>
+<ul>
+<li>randomly dividing observations in to k groups of equal/approximate size</li>
+<li>first fold treated as validation set, and method is fit on remaining k-1 folds</li>
+<li>calculate MSE on held-out folds, up to k times</li>
+<li>averaging these MSEs we get:</li>
+</ul></li>
+</ul>
+<p><span class="math display">\[CV_{(k)} = \frac{1}{k}\sum_{i=1}^k MSE_{i}\]</span></p>
+<ul>
+<li><p>k = 5 or 10 usually</p></li>
+<li><p>bias-variance trade-off in CV</p>
+<ul>
+<li>from a bias reduction POV, LOOCV is preferred to k-fold</li>
+<li>from a variance reduction POV,</li>
+</ul></li>
+</ul>
+</div>
 
 
 
