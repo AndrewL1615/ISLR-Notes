@@ -1637,11 +1637,13 @@ summary {
 </div>
 
 
+<div id="notes" class="section level1">
+<h1>Notes</h1>
 <ul>
 <li>Used in the absence of very large designated test set (which is very commmon)</li>
 </ul>
-<div id="cross-validation-cv" class="section level1">
-<h1>Cross Validation (CV)</h1>
+<div id="cross-validation-cv" class="section level2">
+<h2>Cross Validation (CV)</h2>
 <ul>
 <li>Leave-One-Out CV
 <ul>
@@ -1668,9 +1670,20 @@ summary {
 <li><p>bias-variance trade-off in CV</p>
 <ul>
 <li>from a bias reduction POV, LOOCV is preferred to k-fold</li>
-<li>from a variance reduction POV,</li>
+<li>from a variance reduction POV, k &lt; n folds CV is preferred</li>
 </ul></li>
+<li><p>for classification problems, we use misclassified observations instead of MSE</p></li>
 </ul>
+</div>
+<div id="bootstrap" class="section level2">
+<h2>Bootstrap</h2>
+<ul>
+<li>obtain distinct data sets by repeatedly sampling observations with replacement from the original data set</li>
+</ul>
+</div>
+</div>
+<div id="exercises" class="section level1">
+<h1>Exercises</h1>
 </div>
 
 

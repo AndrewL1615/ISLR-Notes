@@ -4,9 +4,11 @@ output:
   html_document:
     df_print: paged
 ---
+# Notes
+
 * Used in the absence of very large designated test set (which is very commmon)
 
-# Cross Validation (CV)
+## Cross Validation (CV)
 
 * Leave-One-Out CV
   + using a single observation $(x_{i},y_{i})$ for the validation set while remaining observations make up training set
@@ -34,6 +36,10 @@ $$CV_{(k)} = \frac{1}{k}\sum_{i=1}^k MSE_{i}$$
   
 * for classification problems, we use misclassified observations instead of MSE
 
-# Bootstrap
+## Bootstrap
 
 * obtain distinct data sets by repeatedly sampling observations with replacement from the original data set
+
+# Exercises
+
+
