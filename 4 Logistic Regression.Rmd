@@ -1,9 +1,11 @@
 ---
 title: "4 Logistic Regression"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
+# Notes
 
 $\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_{p}$
 
@@ -11,7 +13,7 @@ $\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_
 * uses maximum likelihood to estimate coefficients
 * one unit increase in an independent variable is associated with an increase in the log odds of the variable by its coefficient
 
-### **Linear Discriminant Analysis (LDA)**
+## **Linear Discriminant Analysis (LDA)**
   + popular used when more than 2 response classes
   + if n is small and X is approximately normal
   + uses Bayes Theorem to estimate $Pr(Y = k|X = x)$
@@ -27,7 +29,7 @@ $\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_
   
 * Confusion Matrix used to count number of correctly/incorrectly predicted outcomes
 
-### **Quadratic Discriminant Analysis (QDA)**
+## **Quadratic Discriminant Analysis (QDA)**
   + also assumes observations from each class are normally distributed
   + assumes each class has its own covariance matrix
   + more flexible classifier than LDA
@@ -37,7 +39,7 @@ $\log(\frac{p(X)}{(1-p(X))}) = \beta_{0} + \beta_{1}X_{1} + \cdots + \beta_{p}X_
 
 # Applied
 
-**10)**
+## 10)
 ```{r}
 library(ISLR)
 library(tidyverse)
