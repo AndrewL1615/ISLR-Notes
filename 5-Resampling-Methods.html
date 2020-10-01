@@ -1678,12 +1678,290 @@ summary {
 <div id="bootstrap" class="section level2">
 <h2>Bootstrap</h2>
 <ul>
-<li>obtain distinct data sets by repeatedly sampling observations with replacement from the original data set</li>
+<li>obtain distinct data sets by repeatedly sampling observations with replacement from the original data set
+<ul>
+<li>usually used to estimate the accuracy of a Statistic of Interest (such as variability of coefficient estimates and predictions)</li>
+</ul></li>
+<li>does not rely on the assumption that all variability comes from the error terms <span class="math inline">\(\epsilon_{i}\)</span>
+<ul>
+<li>likely give a more accurate estimate of standard errors of coefficents <span class="math inline">\(\beta_{i}\)</span> than from the summary() in the original model</li>
+</ul></li>
 </ul>
 </div>
 </div>
-<div id="exercises" class="section level1">
-<h1>Exercises</h1>
+<div id="applied" class="section level1">
+<h1>Applied</h1>
+<pre class="r"><code>library(boot)
+library(ISLR)
+library(MASS)</code></pre>
+<div id="calculating-loocv-error" class="section level2">
+<h2>7) (Calculating LOOCV error)</h2>
+<div id="a" class="section level3">
+<h3>a)</h3>
+<pre class="r"><code>week.glm &lt;- glm(Direction ~ Lag1 + Lag2, data = Weekly, family = &quot;binomial&quot;)</code></pre>
+</div>
+<div id="b" class="section level3">
+<h3>b)</h3>
+<pre class="r"><code>#logistic model without 1st observation
+week.glm1 &lt;- glm(Direction ~ Lag1 + Lag2, data = Weekly[-1,], family = &quot;binomial&quot;)</code></pre>
+</div>
+<div id="c" class="section level3">
+<h3>c)</h3>
+<pre class="r"><code>#predict 1st observation using trained log model
+week.probs &lt;- predict(week.glm1, newdata = Weekly[1,], type = &quot;response&quot;)
+week.pred &lt;- rep(&quot;Down&quot;, length(week.probs))
+week.pred[week.probs &gt; .5] &lt;- &quot;Up&quot;
+
+mean(week.pred == Weekly$Direction[1])</code></pre>
+<pre><code>## [1] 0</code></pre>
+<p>No, it did not classify this observation correctly.</p>
+</div>
+<div id="d" class="section level3">
+<h3>d)</h3>
+<pre class="r"><code>error &lt;- rep(0, nrow(Weekly))
+
+for(i in 1:nrow(Weekly)){
+  #fitting log model using all but i&#39;th observation up to n
+  week.glmi &lt;- glm(Direction ~ Lag1 + Lag2, data = Weekly[-i, ], family = &quot;binomial&quot;)
+  
+  #if prob &gt; 0.5, classify response as Up
+  pred.up &lt;- predict.glm(week.glmi, Weekly[i,], type = &quot;response&quot;) &gt; 0.5
+  true.up &lt;- Weekly[i,]$Direction == &quot;Up&quot;
+  
+  #if model prediction doesn&#39;t match actual response, give 1 on the corresponding error index
+  if(pred.up != true.up){
+    error[i] &lt;- 1
+  }
+}
+mean(error)</code></pre>
+<pre><code>## [1] 0.4499541</code></pre>
+<p>Thus, the model has around a 45% test error for the LOOCV method. The relatively high error rate could be attributed to the fact that LOOCV overfitted on the training data and thus has poor prediction rates.</p>
+</div>
+</div>
+<div id="section" class="section level2">
+<h2>8)</h2>
+<div id="a-1" class="section level3">
+<h3>a)</h3>
+<pre class="r"><code>set.seed(1)
+x &lt;- rnorm(100)
+y &lt;- x - 2*x^2 + rnorm(100)</code></pre>
+<p>In this generated dataset, <span class="math inline">\(n\)</span> (# of observations) is 100 and <span class="math inline">\(p\)</span> (# of predictors) is 2.</p>
+</div>
+<div id="b-1" class="section level3">
+<h3>b)</h3>
+<pre class="r"><code>plot(x,y)</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABUAAAAPACAMAAADDuCPrAAAAq1BMVEUAAAAAADoAAGYAOjoAOmYAOpAAZrY6AAA6OgA6Ojo6OmY6ZmY6ZpA6ZrY6kNtmAABmOgBmOjpmZmZmkJBmkLZmkNtmtttmtv+QOgCQZgCQZjqQtraQttuQtv+Q2/+2ZgC2Zjq2kGa2kLa2tpC2tra2ttu229u22/+2///bkDrbkGbbtmbbtpDbtrbb27bb29vb2//b////tmb/25D/27b/29v//7b//9v////zxhKKAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAgAElEQVR4nO3dD5fjxLngYQ0hTMgS/syygc3NMpe9E2BuCCwDofv7f7K1u6fdsi3Z0usqSVX1POcwx/S4ZcmyfpZKsqe7ByCkW3sGAEoloABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKELTtgHYAyaRPVPIpJrT2sw3UJXmjUk8wpQxvGECzBBQgSEABggQUIEhAAYIE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QJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoQJCAAgQJKECQgAIECShAkIACBAkoJXvXdR/8sL9x93XXfbT23NAcAaVkh24eSgoLElCK9uvL7sU39/e/f9Z1X609L7RHQCnb66774y/v/4SFCShle9j33B3A7/dDYWECSuF28fzDy677dO35oEUCSuH255EcwLMOAaV0v750AM9KBJTS7XdBXcLEKgSU0r3dH8IbAmUNAkrhfv+se/HSMTyrEFAK93q3+/nW5zhZhYBStnf7M/A+iMQ6BJSi7c8gfeWj8KxEQCna28dLQPcddR6JxQkoJfv16fSRD3OyBgGlZK8PZ49eO4/E8gQUIEhAAYIEFCBIQAGCBBQgSEABggQUIEhAAYIEFCBIQAGCBBQgSEABggQUIEhAAYIEFCBIQAGCBBQgSEABggQUIEhAAYIEFCBIQAGCBBQgSEABggQUIEhAAYIEFCBIQAGCBBQgSEABggQUIEhAAYIEFCBIQAGCBBQgSEABggQUIEhAAYIEFCBIQAGCBBQgSEABggQUIEhAAYIEFCBIQAGCBBQgSEABggQUIOj/A8Pqq/gRecG4AAAAAElFTkSuQmCC" width="672" /> There seems to be an inverse quadratic relationship between X and Y.</p>
+</div>
+<div id="c-1" class="section level3">
+<h3>c)</h3>
+<pre class="r"><code>set.seed(1)
+
+df &lt;- data.frame(x,y)
+
+#calculating LOOCV errors for x predictor up to power of 4
+cv.err1 &lt;- rep(0,4) #to store LOOCV errors
+for(i in 1:4){
+  lm1.fit &lt;- glm(y ~ poly(x,i), data = df,)
+  cv.err1[i] &lt;- cv.glm(df,lm1.fit, K = nrow(df))$delta[1]
+}
+cv.err1</code></pre>
+<pre><code>## [1] 7.2881616 0.9374236 0.9566218 0.9539049</code></pre>
+</div>
+<div id="d-1" class="section level3">
+<h3>d)</h3>
+<pre class="r"><code>#repeat part c) with different seed
+set.seed(2)
+
+df &lt;- data.frame(x,y)
+
+cv.err2 &lt;- rep(0,4) 
+for(i in 1:4){
+  lm2.fit &lt;- glm(y ~ poly(x,i), data = df)
+  cv.err2[i] &lt;- cv.glm(df,lm2.fit, K = nrow(df))$delta[1]
+}
+cv.err2</code></pre>
+<pre><code>## [1] 7.2881616 0.9374236 0.9566218 0.9539049</code></pre>
+<p>Yes, since we are using LOOCV with k = n folds, we have the exact same test error values as the ones in part c)</p>
+</div>
+<div id="e" class="section level3">
+<h3>e)</h3>
+<p>It seems that the quadratic model (power of 2) had the lowest LOOCV error. This is expected since it looked like the relationship between X and Y were a quadratic form</p>
+</div>
+<div id="f" class="section level3">
+<h3>f)</h3>
+<pre class="r"><code>summary(lm1.fit)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = y ~ poly(x, i), data = df)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.0550  -0.6212  -0.1567   0.5952   2.2267  
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  -1.55002    0.09591 -16.162  &lt; 2e-16 ***
+## poly(x, i)1   6.18883    0.95905   6.453 4.59e-09 ***
+## poly(x, i)2 -23.94830    0.95905 -24.971  &lt; 2e-16 ***
+## poly(x, i)3   0.26411    0.95905   0.275    0.784    
+## poly(x, i)4   1.25710    0.95905   1.311    0.193    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for gaussian family taken to be 0.9197797)
+## 
+##     Null deviance: 700.852  on 99  degrees of freedom
+## Residual deviance:  87.379  on 95  degrees of freedom
+## AIC: 282.3
+## 
+## Number of Fisher Scoring iterations: 2</code></pre>
+<pre class="r"><code>summary(lm2.fit)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = y ~ poly(x, i), data = df)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.0550  -0.6212  -0.1567   0.5952   2.2267  
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  -1.55002    0.09591 -16.162  &lt; 2e-16 ***
+## poly(x, i)1   6.18883    0.95905   6.453 4.59e-09 ***
+## poly(x, i)2 -23.94830    0.95905 -24.971  &lt; 2e-16 ***
+## poly(x, i)3   0.26411    0.95905   0.275    0.784    
+## poly(x, i)4   1.25710    0.95905   1.311    0.193    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for gaussian family taken to be 0.9197797)
+## 
+##     Null deviance: 700.852  on 99  degrees of freedom
+## Residual deviance:  87.379  on 95  degrees of freedom
+## AIC: 282.3
+## 
+## Number of Fisher Scoring iterations: 2</code></pre>
+<p>From the output, it looks like the model with the 2nd order term had the most statistical significance. Thus, it agreed with the conclusions from the CV results.</p>
+</div>
+</div>
+<div id="bootstrapping-statistics" class="section level2">
+<h2>9) (Bootstrapping statistics)</h2>
+<div id="a-2" class="section level3">
+<h3>a)</h3>
+<pre class="r"><code>mu.hat &lt;- mean(Boston$medv); mu.hat</code></pre>
+<pre><code>## [1] 22.53281</code></pre>
+<p><span class="math inline">\(\hat{\mu}\)</span> of medv is roughly 22.5 from the data</p>
+</div>
+<div id="b-2" class="section level3">
+<h3>b)</h3>
+<pre class="r"><code>muhat.se &lt;- sd(Boston$medv)/sqrt(nrow(Boston))</code></pre>
+<p>The standard error of <span class="math inline">\(\hat{\mu}\)</span> is roughly around 0.41, which indicates that most of the data is closely centered around <span class="math inline">\(\hat{\mu}\)</span>.</p>
+</div>
+<div id="c-2" class="section level3">
+<h3>c)</h3>
+<pre class="r"><code>set.seed(1)
+
+#create function to sample mean for bootstrap
+mean.fn &lt;- function(data,index){
+  mu &lt;- mean(data[index])
+  return(mu)
+}
+
+boot.muhat &lt;- boot(Boston$medv,mean.fn, R = 1000) #1000 bootstrap iterations
+boot.muhat</code></pre>
+<pre><code>## 
+## ORDINARY NONPARAMETRIC BOOTSTRAP
+## 
+## 
+## Call:
+## boot(data = Boston$medv, statistic = mean.fn, R = 1000)
+## 
+## 
+## Bootstrap Statistics :
+##     original      bias    std. error
+## t1* 22.53281 0.007650791   0.4106622</code></pre>
+<p>The SE is very close to that from part b)</p>
+</div>
+<div id="d-2" class="section level3">
+<h3>d)</h3>
+<pre class="r"><code>#95% CI for bootstrap muhat
+CI.bootmuhat &lt;- c(boot.muhat$t0 - 2*.4106622, boot.muhat$t0 + 2*.4106622)
+CI.bootmuhat</code></pre>
+<pre><code>## [1] 21.71148 23.35413</code></pre>
+<pre class="r"><code>t.test(Boston$medv)</code></pre>
+<pre><code>## 
+##  One Sample t-test
+## 
+## data:  Boston$medv
+## t = 55.111, df = 505, p-value &lt; 2.2e-16
+## alternative hypothesis: true mean is not equal to 0
+## 95 percent confidence interval:
+##  21.72953 23.33608
+## sample estimates:
+## mean of x 
+##  22.53281</code></pre>
+<p>The CI’s for both methods are very close</p>
+</div>
+<div id="e-1" class="section level3">
+<h3>e)</h3>
+<pre class="r"><code>med.hat &lt;- median(Boston$medv)
+med.hat</code></pre>
+<pre><code>## [1] 21.2</code></pre>
+<p>sample median is 21.2</p>
+</div>
+<div id="f-1" class="section level3">
+<h3>f)</h3>
+<pre class="r"><code>#function for median
+med.fn &lt;- function(data,index){
+  med &lt;- median(data[index])
+  return(med)
+}
+
+boot.medhat &lt;- boot(Boston$medv,med.fn, R = 1000)
+boot.medhat</code></pre>
+<pre><code>## 
+## ORDINARY NONPARAMETRIC BOOTSTRAP
+## 
+## 
+## Call:
+## boot(data = Boston$medv, statistic = med.fn, R = 1000)
+## 
+## 
+## Bootstrap Statistics :
+##     original  bias    std. error
+## t1*     21.2 -0.0386   0.3770241</code></pre>
+<p>We can see that the SE of the bootstrapped median is around .369, which is pretty small relative to the median value</p>
+</div>
+<div id="g" class="section level3">
+<h3>g)</h3>
+<pre class="r"><code>quant10 &lt;- quantile(Boston$medv, probs = 0.1); quant10</code></pre>
+<pre><code>##   10% 
+## 12.75</code></pre>
+<p>10th quantile of medv is 12.75</p>
+</div>
+<div id="f-2" class="section level3">
+<h3>f)</h3>
+<pre class="r"><code>quant10.cn &lt;- function(data,index) {
+  quant10th &lt;- quantile(data[index], probs = .1) 
+  return(quant10th)
+}
+
+boot.quant10 &lt;- boot(Boston$medv,quant10.cn, R = 1000)
+boot.quant10</code></pre>
+<pre><code>## 
+## ORDINARY NONPARAMETRIC BOOTSTRAP
+## 
+## 
+## Call:
+## boot(data = Boston$medv, statistic = quant10.cn, R = 1000)
+## 
+## 
+## Bootstrap Statistics :
+##     original  bias    std. error
+## t1*    12.75  0.0186   0.4925766</code></pre>
+<p>SE of the 10th quantile is around .51, which is still pretty low relative to the median</p>
+</div>
+</div>
 </div>
 
 
