@@ -1,6 +1,7 @@
 ---
-title: "2: Statistical Learning"
+title: '2: Statistical Learning'
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
