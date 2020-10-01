@@ -1,6 +1,7 @@
 ---
 title: "3. Linear Regression"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -65,6 +66,7 @@ predict(slr, data.frame(horsepower = 98), interval = "confidence")
 ```{r}
 plot(Auto$horsepower, Auto$mpg)
 abline(reg = slr, col = "red") #regression line
+par(mfrow=c(2,2))
 plot(slr) #diagnoistics plots 
 ```
 **10**
