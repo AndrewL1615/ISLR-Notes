@@ -1,6 +1,7 @@
 ---
 title: "5 Resampling Methods"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -39,7 +40,198 @@ $$CV_{(k)} = \frac{1}{k}\sum_{i=1}^k MSE_{i}$$
 ## Bootstrap
 
 * obtain distinct data sets by repeatedly sampling observations with replacement from the original data set
+  + usually used to estimate the accuracy of a Statistic of Interest (such as variability of coefficient estimates and predictions)
+* does not rely on the assumption that all variability comes from the error terms $\epsilon_{i}$
+  + likely give a more accurate estimate of standard errors of coefficents $\beta_{i}$ than from the summary() in the original model
 
-# Exercises
+# Applied
 
+```{r}
+library(boot)
+library(ISLR)
+library(MASS)
+```
 
+## 7) (Calculating LOOCV error)
+
+### a)
+```{r}
+week.glm <- glm(Direction ~ Lag1 + Lag2, data = Weekly, family = "binomial")
+```
+
+### b)
+```{r}
+#logistic model without 1st observation
+week.glm1 <- glm(Direction ~ Lag1 + Lag2, data = Weekly[-1,], family = "binomial")
+```
+
+### c)
+```{r}
+#predict 1st observation using trained log model
+week.probs <- predict(week.glm1, newdata = Weekly[1,], type = "response")
+week.pred <- rep("Down", length(week.probs))
+week.pred[week.probs > .5] <- "Up"
+
+mean(week.pred == Weekly$Direction[1])
+```
+No, it did not classify this observation correctly.
+
+### d)
+```{r}
+error <- rep(0, nrow(Weekly))
+
+for(i in 1:nrow(Weekly)){
+  #fitting log model using all but i'th observation up to n
+  week.glmi <- glm(Direction ~ Lag1 + Lag2, data = Weekly[-i, ], family = "binomial")
+  
+  #if prob > 0.5, classify response as Up
+  pred.up <- predict.glm(week.glmi, Weekly[i,], type = "response") > 0.5
+  true.up <- Weekly[i,]$Direction == "Up"
+  
+  #if model prediction doesn't match actual response, give 1 on the corresponding error index
+  if(pred.up != true.up){
+    error[i] <- 1
+  }
+}
+mean(error)
+```
+Thus, the model has around a 45% test error for the LOOCV method. The relatively high error rate could be attributed to the fact that LOOCV overfitted on the training data and thus has poor prediction rates.
+
+## 8) (LOOCV of a generated dataset)
+
+### a)
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- x - 2*x^2 + rnorm(100)
+```
+
+In this generated dataset, $n$ (# of observations) is 100 and $p$ (# of predictors) is 2.
+
+### b)
+```{r}
+plot(x,y)
+```
+There seems to be an inverse quadratic relationship between X and Y.
+
+### c)
+```{r}
+set.seed(1)
+
+df <- data.frame(x,y)
+
+#calculating LOOCV errors for x predictor up to power of 4
+cv.err1 <- rep(0,4) #to store LOOCV errors
+for(i in 1:4){
+  lm1.fit <- glm(y ~ poly(x,i), data = df,)
+  cv.err1[i] <- cv.glm(df,lm1.fit, K = nrow(df))$delta[1]
+}
+cv.err1
+```
+
+### d)
+```{r}
+#repeat part c) with different seed
+set.seed(2)
+
+df <- data.frame(x,y)
+
+cv.err2 <- rep(0,4) 
+for(i in 1:4){
+  lm2.fit <- glm(y ~ poly(x,i), data = df)
+  cv.err2[i] <- cv.glm(df,lm2.fit, K = nrow(df))$delta[1]
+}
+cv.err2
+```
+Yes, since we are using LOOCV with k = n folds, we have the exact same test error values as the ones in part c)
+
+### e)
+It seems that the quadratic model (power of 2) had the lowest LOOCV error. This is expected since it looked like the relationship between X and Y were a quadratic form
+
+### f)
+```{r}
+summary(lm1.fit)
+summary(lm2.fit)
+```
+
+From the output, it looks like the model with the 2nd order term had the most statistical significance. Thus, it agreed with the conclusions from the CV results.
+
+## 9) (Bootstrapping statistics)
+
+### a)
+```{r}
+mu.hat <- mean(Boston$medv); mu.hat
+```
+$\hat{\mu}$ of medv is roughly 22.5 from the data
+
+### b)
+```{r}
+muhat.se <- sd(Boston$medv)/sqrt(nrow(Boston))
+```
+
+The standard error of $\hat{\mu}$ is roughly around 0.41, which indicates that most of the data is closely centered around $\hat{\mu}$.
+
+### c)
+```{r}
+set.seed(1)
+
+#create function to sample mean for bootstrap
+mean.fn <- function(data,index){
+  mu <- mean(data[index])
+  return(mu)
+}
+
+boot.muhat <- boot(Boston$medv,mean.fn, R = 1000) #1000 bootstrap iterations
+boot.muhat
+```
+
+The SE is very close to that from part b)
+
+### d)
+
+```{r}
+#95% CI for bootstrap muhat
+CI.bootmuhat <- c(boot.muhat$t0 - 2*.4106622, boot.muhat$t0 + 2*.4106622)
+CI.bootmuhat
+
+t.test(Boston$medv)
+```
+The CI's for both methods are very close
+
+### e)
+```{r}
+med.hat <- median(Boston$medv)
+med.hat
+```
+sample median is 21.2
+
+### f)
+```{r}
+#function for median
+med.fn <- function(data,index){
+  med <- median(data[index])
+  return(med)
+}
+
+boot.medhat <- boot(Boston$medv,med.fn, R = 1000)
+boot.medhat
+```
+We can see that the SE of the bootstrapped median is around .369, which is pretty small relative to the median value
+
+### g)
+```{r}
+quant10 <- quantile(Boston$medv, probs = 0.1); quant10
+```
+10th quantile of medv is 12.75
+
+### f)
+```{r}
+quant10.cn <- function(data,index) {
+  quant10th <- quantile(data[index], probs = .1) 
+  return(quant10th)
+}
+
+boot.quant10 <- boot(Boston$medv,quant10.cn, R = 1000)
+boot.quant10
+```
+SE of the 10th quantile is around .51, which is still pretty low relative to the median
