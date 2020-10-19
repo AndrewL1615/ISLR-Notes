@@ -75,3 +75,18 @@ Techniques for adjusting the training error for the model size are available
     + despite popularity, is not as statistically motivated as the previous penalties
     
 ## Shrinkage Methods
+
+* fit model using all predictors and regularizes coefficients/shrinks coefficients towards zero
+  + reduces variance
+  
+### Ridge Regression
+
+wants to minimize:
+$$ \sum_{i=1}^{n} (y_{i}-\beta_{0} - \sum_{j=1}^{p} \beta_{j}x_{ij})^2 + \lambda\sum_{j=1}^n \beta_{j}^2 = RSS + \lambda\sum_{j=1}^n \beta_{j}^2$$
+
+* $\lambda\sum_{j=1}^n \beta_{j}^2$ is the shrinkage penalty
+* $\lambda \ge 0$ is the tuning parameter
+  + as $\lambda\to\infty$, the model coefficients approaches zero (except for model intercept $\beta_{0}$)
+* selecting $\lambda$ value is important (can use CV)
+* best to apply ridge after predictors have been standardized (due to potential scaling issues):
+$$ \tilde{x_{ij}} = \frac{x_{ij}}{\sqrt(\frac{1}{n}\sum_{i=1}^{n} (x_{ij} - \overline{x}_{j})^2)}}$$
