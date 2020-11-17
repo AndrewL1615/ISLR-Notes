@@ -32,7 +32,7 @@ Y = $\beta_{0} + \beta_{1}X_{1} + \beta_{2}X_{2} + \cdots + \beta_{p}X_{p}$
 
 * F-statistics used for MLR from the independent variables to reject null
 
-* qualitiative predictors can be represented with dummy variables
+* qualitative predictors can be represented with dummy variables
 
 * Polynomial regressions allow us to add non-linear relationships between predictor and response, but model overall is still linear
 
