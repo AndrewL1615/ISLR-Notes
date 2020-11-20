@@ -160,3 +160,274 @@ $$Z_{j1} = \sum_{j=1}^{p} \beta_{j}(X_{j}-\overline{X}_{j})$$
 
 # Applied
 
+## Subset Selection
+
+```{r}
+library(ISLR)
+names(Hitters)
+summary(Hitters)
+
+Hitters <- na.omit(Hitters) #omit na rows
+
+library(leaps) #for subset selection
+
+# best subset function
+regfit.full <- regsubsets(Salary~., data = Hitters) #default up to 8 variables
+summary(regfit.full)
+
+regfit.full <- regsubsets(Salary~., data = Hitters, nvmax = 19) #set max # of variables to 19
+reg.summary <- summary(regfit.full)
+reg.summary$names #list of accuracy/penalty measurements
+
+par(mfrow = c(2,2))
+plot(reg.summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "p")
+plot(reg.summary$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type ="p")
+plot(reg.summary$cp, xlab = "Number of Variables", ylab = "Cp", type ="p")
+plot(reg.summary$bic, xlab = "Number of Variables", ylab = "BIC", type ="p")
+
+#seems that the number of variables that best fit the model is around 10
+
+par(mfrow = c(1,1))
+plot(regfit.full, scale = "Cp") #shows Cp values for all combinations
+coef(regfit.full, 10) #coefficients for the 10 variables in model
+
+#10 variables include AtBat, Hits, Walks, CAtBat, CRuns, CRBI, CWalks, DivisionW, PutOuts, Assists
+```
+
+```{r}
+#Forward and Backward Selection
+
+regfit.fwd <- regsubsets(Salary~., data = Hitters, nvmax = 19, method = "forward")
+summary(regfit.fwd)
+
+regfit.bwd <- regsubsets(Salary~., data = Hitters, nvmax = 19, method = "backward")
+summary(regfit.bwd)
+
+#comparing forward and backward
+par(mfrow = c(1,2))
+plot(regfit.fwd, scale = "Cp")
+plot(regfit.bwd, scale = "Cp")
+
+#in 7 variable model, selected variables are different
+coef(regfit.full, 7)
+coef(regfit.fwd, 7)
+coef(regfit.bwd, 7)
+
+#choosing models using Validation Set and CV
+set.seed(1)
+train <- sample(c(TRUE,FALSE), nrow(Hitters), replace = TRUE)
+test <- !train
+
+#perform best subset on train 
+regfit.best <- regsubsets(Salary ~., data = Hitters[train,], nvmax = 19)
+
+test.mat <- model.matrix(Salary ~ ., data = Hitters[test,])
+val.errors <- rep(NA,19)
+
+for(i in 1:19){
+  coefi <- coef(regfit.best, id = i) #extract coefficients from regfit.best for each model of size i
+  pred <- test.mat[,names(coefi)] %*% coefi #gives us the predicted value for each observation
+  val.errors[i] <- mean((Hitters$Salary[test] - pred)^2) #MSE for each model of size i
+}
+
+val.errors
+which.min(val.errors) #7 variables gives us the lowest test MSE
+coef(regfit.best,7)
+
+#function for predicting subset selection
+predict.regsubsets = function(object, newdata, id, ...) {
+  form = as.formula(object$call[[2]])
+  mat = model.matrix(form, newdata)
+  coefi = coef(object, id = id)
+  mat[, names(coefi)] %*% coefi
+}
+```
+
+```{r}
+#Using k-fold validations
+
+k <- 10
+set.seed(1)
+folds <- sample(1:k, nrow(Hitters),replace = T) #sample numbers 1 to 10 of length = dataset
+table(folds)
+cv.errors <- matrix(NA,k,19, dimnames = list(NULL, paste(1:19))) #matrix to store results
+
+for(j in 1:k){
+  best.fit <- regsubsets(Salary~., data = Hitters[folds != j,], nvmax = 19)
+  for(i in 1:19){
+    pred <- predict(best.fit, Hitters[folds == j,], id = i)
+    #(i,j)th element corresponds to test MSE for ith CV for the best j-variable model
+    cv.errors[j,i] <- mean((Hitters$Salary[folds == j] - pred)^2)
+  }
+}
+
+mean.cv.errors <- apply(cv.errors,2,mean) #get a vector of the avg jth validation error for the jth model
+mean.cv.errors
+par(mfrow = c(1,1))
+plot(mean.cv.errors, type = "b") #selects a 10 variable model
+
+#perform best subset with 10 variables
+reg.best <- regsubsets(Salary~., data = Hitters, nvmax = 19)
+coef(reg.best,10)
+```
+
+## Ridge and Lasso
+
+```{r}
+#Ridge Regression
+
+x <- model.matrix(Salary~., data = Hitters)[,-1] #create matrix of values for all predictors
+#also transforms qualitative variables into dummy variables
+y <- Hitters$Salary
+```
+
+```{r}
+library(glmnet)
+
+grid <- 10^seq(10,-2, length = 100) #lambda values from 10^10 to 10^-2
+ridge.mod <- glmnet(x,y,alpha = 0, lambda = grid) #alpha = 0 for ridge, 1 for lasso
+ridge.mod$lambda[50]
+coef(ridge.mod)[,50] #Ridge coefficients for lambda = 11498
+ridge.mod$lambda[60]
+coef(ridge.mod)[,60] #Ridge coefficients for lambda = 705
+predict(ridge.mod, s = 50, type = "coefficients")[1:20,] #predict coef for lambda = 50
+
+plot(ridge.mod, xvar = "lambda", label = T) #plot of coefficients against lambda values
+```
+
+```{r}
+#split train/test
+set.seed(1)
+train <- sample(1:nrow(x), nrow(x)/2)
+test <- (-train)
+y.test <- y[test]
+
+#fit ridge model on train
+ridge.mod <- glmnet(x[train,],y[train], alpha = 0, lambda = grid, thresh = 1e-12)
+ridge.pred <- predict(ridge.mod, s = 4, newx = x[test,])
+mean((ridge.pred - y.test)^2) #evaluate test MSE with lambda = 4
+```
+MSE is 142199
+
+```{r}
+ridge.pred <- predict(ridge.mod, s=0, newx=x[test,]) #fitting ridge with lambda = 0
+mean((ridge.pred - y.test)^2)
+lm(y~x, subset = train)
+predict(ridge.mod,s=0, type="coefficients")[1:20,] #comparing ridge to original linear model
+```
+
+```{r}
+set.seed(1)
+cv.ridge <- cv.glmnet(x[train,],y[train], alpha = 0) #CV with default 10 folds
+plot(cv.ridge)
+bestlam <- cv.ridge$lambda.min
+bestlam
+```
+
+Seems like the lambda with the lowest test MSE is 326
+
+```{r}
+ridge.pred <- predict(ridge.mod, s = bestlam, newx = x[test,])
+testMSEridge <- mean((ridge.pred - y.test)^2)
+```
+The test MSE is 139856
+
+Refitting ridge regression model using lambda chosen by CV
+```{r}
+out <- glmnet(x,y, alpha = 0)
+predict(out, type = "coefficients", s = bestlam)[1:20]
+```
+```{r}
+#Lasso
+lasso.mod <- glmnet(x[train,],y[train],alpha = 1)
+plot(lasso.mod)
+```
+
+Same process as before, using alpha = 1. 
+```{r}
+set.seed(1)
+cv.out <- cv.glmnet(x[train,], y[train], alpha = 1)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+bestlam
+```
+Seems like the best lambda value is around 9
+
+```{r}
+lasso.pred <- predict(lasso.mod, s = bestlam, newx = x[test,])
+testMSElasso <- mean((lasso.pred - y.test)^2)
+```
+test MSE for CV lambda is 143668
+
+```{r}
+out <- glmnet(x,y, alpha = 1,lambda = grid)
+lasso.coef <- predict(out, type = "coefficients", s = bestlam)[1:20,]
+lasso.coef
+```
+We can see that some variables have been shrunken down to 0. In this case, it seems that test MSE actually performed better with the Ridge than Lasso, but the Lasso model is notably more sparse, making it easier for interpretation
+
+##PCR and PLS
+
+```{r}
+library(pls)
+set.seed(1)
+pcr.fit <- pcr(Salary~., data = Hitters, scale = T, validation = "CV")
+#scale standardizes each predictor, validation = CV computes 10-fold CV
+summary(pcr.fit)
+```
+
+```{r}
+#validation plot with CV MSE
+validationplot(pcr.fit, val.type = "MSEP")
+```
+
+Seems that MSE is lowest at 16, but CV error is roughly the same at 1 PC score
+
+```{r}
+#train/test
+set.seed(1)
+pcr.fit <- pcr(Salary~., data = Hitters, subset = train, scale = T,
+               validation = "CV")
+validationplot(pcr.fit, val.type = "MSEP")
+```
+
+lowest CV error occurs when m = 5, so we now compute the test MSE
+```{r}
+pcr.pred <- predict(pcr.fit, x[test,], ncomp = 5)
+testMSEpcr <- mean((pcr.pred - y.test)^2)
+```
+Seems like the test MSE is competitive with Lasso and Ridge
+
+```{r}
+#PLS
+set.seed(1)
+pls.fit <- plsr(Salary~., data = Hitters, subset = train, scale = T,
+                validation = "CV")
+summary(pls.fit)
+validationplot(pls.fit, val.type = "MSEP")
+```
+Lowest CV error seems to be M = 1
+
+```{r}
+pls.pred <- predict(pls.fit,x[test,],ncomp = 1)
+testMSEpls <- mean((pls.pred - y.test)^2)
+```
+Seems like the MSE is a little higher than the other methods
+
+```{r}
+pls.fit <- plsr(Salary~., data = Hitters, scale = T,
+                ncomp = 1)
+summary(pls.fit)
+```
+
+Box graph of all the test MSEs using the different methods
+```{r}
+library(ggplot2)
+alltestMSE <- c(testMSEridge, testMSElasso, testMSEpcr, testMSEpls)
+barplot(alltestMSE, 
+        names.arg = c("Ridge,Lasso,PCR,PLS"),
+        cex.names = 0.8,
+        args.legend = alltestMSE,
+        xlab = "Type of Regularization", 
+        ylab = "Test MSE")
+```
