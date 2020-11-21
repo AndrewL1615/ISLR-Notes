@@ -157,3 +157,204 @@ $$ y_{i} = \beta_{0} + \sum_{j=1}^p f_{j}(x_{ij}) + \epsilon_{i}$$
   
 ### GAMs for Classification
 $$log(\frac{p(X)}{1-p(X)})=\beta_{0} + \beta_{1}f_{1}(X_{1})+\cdots+\beta_{p}f_{p}(X_{p})$$
+
+# Applied
+
+```{r}
+library(ISLR)
+attach(Wage) #using Wage data
+```
+
+## Polynomial Regression and Step Functions
+
+Fitting model of wage against age with degree 4
+```{r}
+fit <- lm(wage ~ poly(age,4), data = Wage)
+coef(summary(fit))
+```
+Create a grid of values for age at which we want predictions:
+```{r}
+agelims <- range(age)
+age.grid <- seq(from = agelims[1], to = agelims[2]) # list of age values
+preds <- predict(fit, newdata = list(age = age.grid), se=T) # use fitted model to predict new age values
+se.bands <- cbind(preds$fit + 2*preds$se.fit, preds$fit - 2 * preds$se.fit)
+```
+
+Plot the data and add fit from degree-4 polynomial:
+```{r}
+par(mfrow = c(1,1), mar = c(4.5,4.5,1,1), oma = c(0,0,4,0))
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey")
+title("Degree-4 Polynomial", outer=T)
+lines(age.grid, preds$fit, lwd = 2, col = "blue")
+matlines(age.grid, se.bands, lwd = 1, col = "blue", lty = 3)
+```
+
+Now we fit from linear to a degree-5 polynomial to seek the simplest model sufficient to explain relationship between wage and age:
+```{r}
+fit1 <- lm(wage ~ age, data = Wage)
+fit2 <- lm(wage ~ poly(age, 2), data = Wage)
+fit3 <- lm(wage ~ poly(age, 3), data = Wage)
+fit4 <- lm(wage ~ poly(age, 4), data = Wage)
+fit5 <- lm(wage ~ poly(age, 5), data = Wage)
+anova(fit1, fit2, fit3, fit4, fit5)
+```
+Above is what is called a _nested_ models, where each model is nested in the proceeding models after
+
+Looking at p-values, it seems that a cubic or quartic polynomial appear to be reasonable to fit the data, but lower or higher order models are not justified. Instead of ANOVA, CV involving the polynomial degree could be used as well
+
+
+Now we explore a logistic approach; predicting whether an individual earns more than $250,000 per year
+```{r}
+#classification
+fit <- glm(I(wage > 250) ~ poly(age, 4), data = Wage, family = binomial)
+preds <- predict(fit, newdata = list(age = age.grid), se = T) #predict using fitted model using age values from grid
+```
+
+Creating confidence intervals for logit:
+```{r}
+pfit <- exp(preds$fit)/(1+exp(preds$fit))
+se.bands.logit <- cbind(preds$fit + 2 * preds$se.fit, preds$fit - 2 * preds$se.fit)
+se.bands <- exp(se.bands.logit)/(1+exp(se.bands.logit))
+```
+
+Plotting logit:
+```{r}
+plot(age, I(wage>250), xlim = agelims, type = "n", ylim = c(0,.2))
+points(jitter(age), I((age>250)/5), cex = .5, pch = "l", col = "darkgrey")
+lines(age.grid, pfit, lwd = 2, col = "blue")
+matlines(age.grid, se.bands, lwd = 1, col = "blue", lty = 3)
+```
+
+Fitting a step function:
+```{r}
+table(cut(age,4)) #split ages up into 4 groups
+fit <- lm(wage ~ cut(age,4), data = Wage)
+coef(summary(fit))
+```
+It seems that the age groups that are highly significant in predicing wage belong in the first two groups (ages 33.5~64.5)
+
+## Splines
+```{r}
+library(splines)
+
+fit <- lm(wage ~ bs(age, knots = c(25,40,60)), data = Wage)
+pred <- predict(fit, newdata = list(age = age.grid), se = T)
+plot(age,wage,col="gray")
+lines(age.grid, pred$fit, lwd=2)
+lines(age.grid,pred$fit + 2*pred$se, lty = "dashed")
+lines(age.grid,pred$fit - 2*pred$se, lty = "dashed")
+
+```
+
+Above we specified knots at ages 25,50,60. Thus, six basis functions were used. From the above, a default of cubic splines are produced. (Cubic spline with three knots produces seven degrees of freedom: one intercept + 6 basis functions)
+
+Could also use df option to produce splines at knots with uniform quantiles of the data:
+```{r}
+attr(bs(age,df=6),"knots")
+```
+Fitting a natural spline:
+```{r}
+fit2 <- lm(wage~ns(age,df=4),data=Wage)
+pred2 <- predict(fit2,newdata=list(age=age.grid),se=T)
+
+#plot
+plot(age,wage,xlim=agelims,cex=.5,col="darkgrey")
+lines(age.grid, pred2$fit,col="red",lwd=2)
+title("Smoothing Spline")
+fit <- smooth.spline(age,wage,df=16) # function then determines which value of lambda leads to 16df
+fit2 <- smooth.spline(age,wage,cv=T) # select smoothness by CV
+print(fit2$df)
+lines(fit2,col="blue",lwd=2)
+legend("topright",legend=c("16 DF","6.8 DF"), col=c("red","blue"),lty=1,lwd=2,cex=.8)
+```
+Fitting a local regression:
+```{r}
+plot(age,wage,xlim=agelims,cex=.5,col="darkgrey")
+title("Local Regression")
+fit <- loess(wage~age, span=.2, data=Wage) # each neighborhood consists of 20% of data
+fit2 <- loess(wage~age, span=.5, data = Wage) # 50% of data
+lines(age.grid,predict(fit,data.frame(age=age.grid)),col="red",lwd=2)
+lines(age.grid,predict(fit2,data.frame(age=age.grid)),col="blue",lwd=2)
+legend("topright",legend=c("Span = 0.2","Span = 0.5"), col=c("red","blue"),lty=1,lwd=2,cex=.8)
+```
+
+## GAMs
+
+```{r}
+gam1 <- lm(wage~ns(year,4)+ns(age,5)+education, data = Wage)
+```
+
+```{r}
+library(gam)
+
+#now use smoothing splines from gam library
+gam.m3 <- gam(wage~s(year,4)+s(age,5)+education, data = Wage)
+```
+
+Now we can plot it:
+```{r}
+par(mfrow=c(1,3))
+plot(gam.m3, se=T,col="blue")
+```
+Using plot.Gam instead, on the model with natural splines:
+```{r}
+par(mfrow=c(1,3))
+plot.Gam(gam1, se=T, col="red")
+```
+
+We can see that smoothing and natural splines project very similar results
+
+Now we can use ANOVA testes to determine which of these three models is best:
+```{r}
+gam.m1 <- gam(wage~s(age,5) + education,data=Wage)
+gam.m2 <- gam(wage~year+s(age,5) + education,data=Wage)
+
+anova(gam.m1,gam.m2,gam.m3,test = "F")
+```
+Find that the GAM with a linear function of **year** is better than GAM with no **year** variable. But there is no evidence that a non-linear function of year is needed. This is reinforced by:
+
+```{r}
+summary(gam.m3)
+```
+Just like before, we can make predictions for gam objects:
+```{r}
+preds <- predict(gam.m2, newdata = Wage)
+```
+
+We can implement local regression fits as buildings blocks in GAM:
+```{r}
+gam.lo <- gam(wage~s(year,4)+lo(age,span=0.7)+education,data=Wage)
+
+par(mfrow = c(1,3))
+plot.Gam(gam.lo, se=T, col="green")
+```
+
+We cacn also use lo() to create interactions before calling gam():
+```{r}
+gam.lo.i <- gam(wage~lo(year,age,span=0.5)+education, data=Wage)
+
+```
+```{r}
+library(akima)
+par(mfrow = c(1,2))
+plot(gam.lo.i)
+```
+
+For logistic regression GAMs:
+```{r}
+gam.lr <- gam(I(wage>250)~year+s(age,5)+education, family = binomial,data=Wage)
+par(mfrow=c(1,3))
+plot(gam.lr,se=T, col="green")
+```
+From the education graph, we can see that there are no high earners <HS grad:
+```{r}
+table(education,I(wage>250))
+```
+Thus, we fit a logistic regression GAM using all but this category:
+```{r}
+gam.lr.s <- gam(I(wage>250)~year+s(age,df=5)+education,family = binomial, data = Wage, subset = (education != "1. < HS Grad"))
+
+par(mfrow=c(1,3))
+plot(gam.lr.s,se=T,col = "green")
+```
+
