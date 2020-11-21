@@ -1,0 +1,159 @@
+---
+title: "7 Moving Beyond Linearity"
+author: "Andrew Liang"
+date: "11/20/2020"
+output: pdf_document
+---
+
+# Notes
+
+## Polynomial Regression
+$$y_{i} = \beta_{0}+\beta_{1}x_{i} + \beta_{2}x^2_{i} + \ldots + \beta_{d}x^d_{i}+ \epsilon_{i}$$
+up to degrees of $d$
+
+* is a linear model with predictors $x_{i},x^2_{i},\ldots,x^d_{i}$
+* usually $d$ is no greater than 3 or 4 otherwise model can become overly flexible
+
+## Step Functions
+
+* polynomial functions imposes a _global_ structure on the non-linear function of $X$
+* use step functions to avoid imposing global strcuture
+* break the range of X into _bins_, then fit different constant in each bin
+  * converts continuous variable into an _ordered categorical variable_
+  
+Create cutpoints $c_{1},c_{2},\ldots,c_{K}$ in the range of X, then construct $K+1$ new variables:
+
+$$C_{0}(X)=I(X<c_{1})$$
+$$C_{0}(X)=I(c_{1}<X<c_{2})$$ 
+$$C_{0}(X)=I(c_{1}<X<c_{2})$$ 
+$$\ldots$$
+$$C_{0}(X)=I(c_{K-1}<X<c_{K})$$ 
+$$C_{0}(X)=I(c_{K}<X)$$ 
+where $I(\cdot)$ is an _indicator function_ that returns a 1 if the condition is true, 0 otherwise.
+
+For any value of $X$, $C_{0}(X) + C_{1}(X)+\ldots+C_{K}(X) = 1$, since $X$ must be in exactly one of the $K+1$ intervals
+
+We can then use least sqaure to fit a linear model using $C_{1}(X),C_{2}(X),\ldots,C_{K}(X)$ as predictors:
+$$y_{i}=\beta_{0} +\beta_{1}C_{1}(x_{i})+\beta_{2}C_{2}(x_{i})+\beta_{K}C_{K}(x_{i})+\epsilon_{i}$$
+
+* thus for a given $X$, at most one of $C_{1},C_{2},\ldots,C_{K}$ can be non-zero
+
+Unless there are natural breakpoints in predictors, piecewise-constant functions can miss the action
+
+## Basis Functions
+
+*polynomial and piecewise-constant regression are special cases of _basis function_ approach
+  *idea is to have a family of functions or transformations that can be applied to variable $X$: $b_{1}(X),b_2{X},\ldots,b_{K}(X)$
+
+Then fit the model:
+$$ y_{i}=\beta_{o}+\beta_{1}b_{1}(x_{i})+\beta_{2}b_{2}(x_{i})+\ldots+\beta_{K}b_{K}(x_{i}) +\epsilon_{i}$$
+* basis functions $b_{1}(\cdot),b_{2}(\cdot),\ldots,b_{K}(\cdot)$ must be fixed and known
+* since this is just a standard linear model with predictors $b_{1}(x_{i}),\beta_{2}b_{2}(x_{i}),\ldots,b_{K}(x_{i})$, all inference tools for linear models are still avaiable in this setting
+
+## Regression Splines
+
+### Piecewise Polynomials
+
+* similar to polynomial regressions, but instead of fitting it over the entire range of $X$, we fit separate polynomial regressions over different regions of $X$
+* a quadratic polynomial with a single _knot_ at a point $c$ takes the form:
+
+$$y_{i}=
+\begin{cases}
+\beta_{01}+\beta_{11}x^2_{i}+\beta_{21}x^2_{i}+\epsilon_{i} &\text{if \(x_{i} < c\)}\\
+\beta_{02}+\beta_{12}x^2_{i}+\beta_{22}x^2_{i}+\epsilon_{i} &\text{if \(x_{i} \ge c\)}\\
+\end{cases}$$
+
+* obviously more knots lead to a more flexible piecewise polynomial
+  * $K$ different knots through $X$ results in $K+1$ different polynomial regressions
+* without constraints, the model will be discontinuous at each knot
+
+### Constraints and Splines
+
+* in order to fix discontinuity problem, we apply a constraints that the model must be continuous, or that both _first_ and _second_ derivatives are continuous
+  * setting both first and second derivatives to be continuous allows for piecewise polynomials to be smooth
+    * continuous AT the knot
+    * decreases degree of freedom by 3 (continuity, continuity of first derivative, continuity of second derivative)
+  * setting only the model to be continuous allows for the model to be continuous but not as smooth (sudden changes in direction at the knots)
+    * discontinuous AT the knot
+  * each constraint lowers degree of freedom
+
+*Natural Cubic Splines*
+
+* splines can have high varaince at the outer range of predictors (Where $X$ smaller than smallest knot, bigger than biggest knot)
+  * to solve this, we add _boundary constraints_
+    * enforce function to be linear at the boundary
+      * will have lower CI at boundary regions
+
+### Choosing Number of Knots
+* common practice to place knots in a uniform fashion
+  * specify desired degrees of freedom
+* can see which produces best looking curve, or use CV
+* regression splines often perform superior to polynomial regression
+  * especially at the boundary regions, where variance is highly volatile
+  
+## Smoothing Splines
+
+* to fit a smooth curve to data, want to find some function $g(x)$ so that:
+$$RSS=\sum_{i=1}^n(y_{i}-g(x_{i}))^2$$
+
+is minimized
+
+* however, no constraints on $g(x)$ would allow us to choose $g$ such that it _interpolates_ all of the y_{i}, in other words, we can simply just overfit the data to the extreme
+  * to solve this, we can add a penalty term and minimize:
+  
+$$ RSS=\sum_{i=1}^n(y_{i}-g(x_{i}))^2 + \lambda\int g''(t)^2dt$$
+where $\lambda$ is a nonnegative _tuning parameter_
+* want to minimize the integral of the second derivative of $g$ because
+  * it is the measure of the total change in the function $g'(t)$ in the range of $t$
+  * if *g* is smooth, then $g'(t)$ will be close to constant and $\int g''(t)^2dt$ will be small, vice versa
+  * large $\lambda$ values will penalize jumpy functions and as $\lambda \rightarrow \infty$, $g$ will just be a straight line and thus perfectly smooth
+    *$\lambda$ controls bias-variance tradeoff of smoothing spline
+  * a function $g(x)$ that minimizes the above equation actually places knots at _every_ unique x values: $x_{1},x_{2},\ldots, x_{n}$!
+    *NOT the same as a natural cubic spline, rather it is a _shrunken_ version of it, where $\lambda$ controls level of shrinkage
+    
+### Choosing Smoothing Parameter 
+
+* seems like a smoothing spline might have far too many df, but $\lambda$ effectively controls roughness of spline, and hence controls the _effective degrees of freedom_
+* selecting $\lambda$ is essentially equivalent to selecting how many df you want
+* using LOOCV allows us to reduce RSS as small as possible:
+
+$$RSS_{cv}(\lambda)=\sum_{i=1}^n (y_{i}-\hat{g}_{\lambda}^{(-i)}(x_{i}))^2$$
+
+## Local Regression
+
+* idea is to fit a function at a target point $x_{0}$ using only the nearby training observations
+* Local Regression Algorithm at $X=x_{0}$: 
+
+1) Gather fraction $s = k/n$ training points whose x_{i} are closest to x_{0}
+2) Assign weight $K_{i0}=K(x_{i},x_{0})$ to each point in this neighborhood, so that point furthest from $x_{0}$ has weight 0, while closest has highest weight. All but $k$ nearest neighbors get weight 0
+3) Fit _weighted least squares regression_ of $y_{i}$ on $x_{i}$ using aforementioned weights, by finding $\hat{\beta_{0}}$ and $\hat{\beta_{1}}$ that minimize:
+$$ \sum_{i=1}^nK_{i0}(y_{i}-\beta_{0}-\beta_{1}x_{i})^2 $$
+4) Fitted value at $x_0$ is given by $\hat{f(x_{0})} = \hat{\beta_{0}} + \hat{\beta_{1}}x_{0}$
+
+* the smaller value of $s$, the more local and wiggly our fit will be
+* vice versa, the higher value of $s$ leads to a more global fit
+
+## Generalized Additive Models (GAMs)
+
+* extends standard linear model by allowing non-linear functions of each variable, while maintaining _additivity_
+* can be applied to both quantitative/qualitative responses
+
+### GAMs for Regression
+
+* replace each linear component $\beta_{j}x_{ij}$ with a smooth, non-linear function $f_{j}(x_{ij})$:
+$$ y_{i} = \beta_{0} + \sum_{j=1}^p f_{j}(x_{ij}) + \epsilon_{i}$$
+* it is an _additive_ model because it calculates separate $f_{j}$ for each $X_{j}$, then ads together all of their contributions
+* can use all of the aforementioned methods as building blocks to fit an additive model
+
+#### Pros of GAMs
+* allow us to fit non-linear $f_{j}$ to each $X_{j}$ where standard linear regressions will fail to capture
+* potentially allow more accurate predictions for response $Y$
+* since model is additive, we can examine each effect $X_{j}$ has on $Y$ individually holding all other variables fixed - useful for inference
+* smoothness of $f_{j}$ for $X_{j}$ can be summarized via degrees of freedom
+
+#### Cons of GAMs
+* model restricted to be additive, thus interactions between variables can be missed
+  * however we can manually add interaction terms or low-dimensional interaction functions $f_{jk}(X_{j},X_{k})$ to the model
+  
+### GAMs for Classification
+$$log(\frac{p(X)}{1-p(X)})=\beta_{0} + \beta_{1}f_{1}(X_{1})+\cdots+\beta_{p}f_{p}(X_{p})$$
