@@ -213,3 +213,295 @@ where $\gamma$ is a positive constant (essentially a tuning parameter)
   * however, using kernels with LR and LDA can work as well, but computations more expensive
   
 * drawback with SVMs is that it doesn't really select features well like the lasso, all features are used
+
+# Applied
+
+## Support Vector Classifier
+
+We use the svm() function with argument kernel = "linear" 
+
+Generate observations that belong to two classes, and checking if classes are linearly separable:
+```{r}
+set.seed(1)
+x <- matrix(rnorm(20*2), ncol = 2)
+y <- c(rep(-1,10), rep(1,10))
+x[y==1,] <- x[y==1,] + 1
+plot(x, col=(3-y))
+```
+We can see that the observations aren't linearly separable.
+
+Let's fit a support vector classifier:
+```{r}
+dat <- data.frame(x=x, y=as.factor(y)) # must encode response as a factor
+
+library(e1071)
+svmfit <- svm(y~.,
+              data = dat,
+              kernel = "linear",
+              cost = 10,
+              scale = F) # scale = F tells function not to scale each feature to have mean zero or sd 1
+plot(svmfit, dat)
+```
+The supported vectors are plotted as crosses and remaining observations plotted as circles. We can identify the support vectors:
+```{r}
+svmfit$index
+```
+and also get some basic info on the support vector classifier:
+```{r}
+summary(svmfit)
+```
+
+This tells us that four of the support vectors were in class one and three were in class two. What if we used a smaller cost parameter?
+```{r}
+svmfit <- svm(y~.,
+              data = dat,
+              kernel = "linear",
+              cost = 0.1,
+              scale = F)
+plot(svmfit, dat)
+svmfit$index
+summary(svmfit)
+```
+With a smaller cost parameter, we obtain a wider margin, hence we get more support vectors. The svm() does not explicilty output coefficients of linear decision boundary nor does it output the width of margin
+
+It does include tune(), which allows us to perform CV on set of models of interest, k = 10 by default:
+```{r}
+set.seed(1)
+tune.out <- tune(svm,
+                 y~.,
+                 data = dat,
+                 kernel = "linear",
+                 ranges = list(cost=c(0.001,0.01,0.1,1,5,10,100)))
+summary(tune.out)
+```
+It seems that cost = 0.1 gives lowest CV error. tune() stores the best model obtained, and can be accessed:
+```{r}
+bestmod <- tune.out$best.model
+summary(bestmod)
+```
+
+Now we can predict the class label on a set of test observations. Let's generate a test set:
+```{r}
+xtest <- matrix(rnorm(20*2), ncol = 2)
+ytest <- sample(c(-1,1), 20, rep = T)
+xtest[ytest==1,] <- xtest[ytest--1,] + 1
+testdat <- data.frame(x = xtest, y = as.factor(ytest))
+```
+
+Now we predict:
+```{r}
+ypred <- predict(bestmod, testdat)
+table(predict = ypred, truth = testdat$y)
+```
+So with cost = 0.1, we can see that it correctly classifies 9 test observations
+
+Now let's try cost = 0.01:
+```{r}
+svmfit <- svm(y~.,
+              data = dat,
+              kernel = "linear",
+              cost = 0.01,
+              scale = F)
+ypred <- predict(svmfit, testdat)
+table(predict = ypred, truth = testdat$y)
+```
+We now see that it actually predicts 10 observations correctly, which is interesting because it outperformed the "best" model
+
+Now we consider a case when two classes are linearly separable:
+```{r}
+x[y==1,] <- x[y==1,] + 0.5
+plot(x, col = (y+5)/2, pch = 19)
+```
+
+The observations are barely linearly separable
+
+Fitting the support vector classifier using a very large value of cost so no observations are misclassified:
+```{r}
+dat <- data.frame(x=x,y=as.factor(y))
+svmfit <- svm(y~.,
+              data = dat,
+              kernel = "linear",
+              cost = 1e5)
+summary(svmfit)
+```
+
+```{r}
+plot(svmfit, dat)
+```
+We can see there are no training errors and 3 support vectors were used. Margin is narrow as there are circles very close to decision boundaries; this might suggest that it will perform poorly on test set. Let's try a smaller value of cost:
+
+```{r}
+svmfit <- svm(y~.,
+              data = dat,
+              kernel = "linear",
+              cost = 1)
+plot(svmfit, dat)
+```
+We can see that it missclassified a training observation, but we obtained a much wider margin and make use of 7 support vectors. This might suggest it will perofrm better on a test set
+
+## Support Vector Machine
+
+We can use kernel = "polynomial" or kernel = "radial" to fit a SVM with a polynomial or radial kernel respectively
+
+Let's generate some data with non-linear class boundaries:
+```{r}
+set.seed(1)
+x <- matrix(rnorm(200*2), ncol=2)
+x[1:100,] <- x[1:100,] + 2
+x[101:150,] <- x[101:150,] - 2
+y <- c(rep(1,150), rep(2,50))
+dat <- data.frame(x=x, y=as.factor(y))
+
+plot(x, col=y)
+```
+We can see that the boundaries are non-linear. Let's split a train/test, and fit a radial kernel with $\gamma = 1$:
+```{r}
+train <- sample(200,100)
+svmfit <- svm(y~.,
+              data = dat[train,],
+              kernel = "radial",
+              gamma = 1,
+              cost = 1)
+plot(svmfit, dat[train,])
+summary(svmfit)
+```
+We can see that there are quite a few training errors in this SVM fit. Let's increase the value of cost to fix this:
+```{r}
+svmfit <- svm(y~.,
+              data = dat[train,],
+              kernel = "radial",
+              gamma = 1,
+              cost = 1e5)
+plot(svmfit,dat[train,])
+```
+Even though the training errors are reduced, it comes at a price of a more irregular decision boundary due to overfitting
+
+Let's tune $\gamma$ through CV:
+```{r}
+set.seed(1)
+tune.out <- tune(svm,
+                 y~.,
+                 data=dat[train,],
+                 kernel = "radial",
+                 ranges = list(cost=c(0.1,1,10,100,1000), gamma = c(0.5,1,2,3,4)))
+summary(tune.out)
+```
+It seems the best choice of parameters involve cost = 1 and gamma = 2.
+
+Now let's predict a test set:
+```{r}
+table(true = dat[-train,"y"], pred = predict(tune.out$best.model, newdata = dat[-train,]))
+```
+It seems the best model correctly predicted total of 89 predictions out of 100, which is a pretty good fit (of course "good" being subjective)
+
+## ROC Curves
+
+First, we write a function to plot an ROC curve given a vector containing numerical score for each observation: pred, and a vector containing class label for each observation: truth,
+```{r}
+library(ROCR)
+rocplot <- function(pred,truth,...){
+  predob <- prediction(pred,truth)
+  perf <- performance(predob, "tpr","fpr")
+  plot(perf,...)
+}
+```
+
+Now we try to obtain the fitted values for a given SVM model fit, we use decision.values=TRUE when fitting svm(). Then the predict() function will outpu the fitted values:
+```{r}
+svmfit.opt <- svm(y~.,
+                  data = dat[train,],
+                  kernel= "radial",
+                  gamma = 2,
+                  cost = 1,
+                  decision.values = T)
+fitted1 <- attributes(predict(svmfit.opt,dat[train,],decision.values=T))$decision.values
+```
+
+Now we can fit ROC curves:
+```{r}
+rocplot(fitted1,dat[train,"y"], main = "Training Data")
+```
+
+It appears the SVM model is producing accurate predictions. We can increase $\lambda$ to produce a more flexible fit and generate further improvements in accuracy:
+```{r}
+
+svmfit.flex <- svm(y~.,
+                   data = dat[train,],
+                   kernel = "radial",
+                   gamma = 50,
+                   cost = 1,
+                   decision.values = T)
+fitted2 <- attributes(predict(svmfit.flex, dat[train,],decision.values = T))$decision.values
+
+par(mfrow = c(1,2))
+rocplot(fitted1, dat[train,"y"], main = "Gamma = 2")
+rocplot(fitted2, dat[train,"y"], main = "Gamma = 50")
+```
+
+We can see that a higher $\gamma$ values improves ROC curve. However this is on the train data. We are much more interested in the prediction accuracy on the test data, so let's try the test data:
+```{r}
+fitted1 <- attributes(predict(svmfit.opt,dat[-train,],decision.values=T))$decision.values
+fitted2 <- attributes(predict(svmfit.flex,dat[-train,],decision.values=T))$decision.values
+
+par(mfrow=c(1,2))
+rocplot(fitted1, dat[-train,"y"], main = "Gamma = 2")
+rocplot(fitted2, dat[-train,"y"], main = "Gamma = 50")
+```
+We can see that the SVM with $\gamma = 2$ performs much better on the less flexible model
+
+## SVM with More Than Two Classes
+
+The svm() function will perofrm multi-class classification using OVO approach. Let's generate a third class of observations:
+```{r}
+set.seed(1)
+x <- rbind(x,matrix(rnorm(50*2), ncol=2))
+y <- c(y, rep(0,50))
+x[y==0,2] <- x[y==0,2]+2
+dat <- data.frame(x=x, y=as.factor(y))
+plot(x,col=(y+1))
+```
+Let's fit a SVM to the data:
+```{r}
+svmfit <- svm(y~.,
+              data = dat,
+              kernel = "radial",
+              cost = 10,
+              gamma = 1)
+plot(svmfit, dat)
+```
+
+## Application to Gene Data
+
+Let's explore the Khan dataset, which consists of number of tissue samples corresponding to four distinct types of small round blue cell tumors. The dataset already consists of train and test data:
+```{r}
+library(ISLR)
+names(Khan)
+dim(Khan$xtrain)
+dim(Khan$xtest)
+table(Khan$ytrain)
+table(Khan$ytest)
+```
+So we have 2308 genes, and the train and test set consists of 63 and 20 obs respectively
+
+We can see that there are a very large number of features relative to number of obs. This suggests we use a linear kernel, since additional flexibility will cause overfitting:
+```{r}
+dat <- data.frame(x=Khan$xtrain, y=as.factor(Khan$ytrain))
+out <- svm(y~.,
+           data = dat,
+           kernel = "linear",
+           cost = 10)
+summary(out)
+```
+
+```{r}
+table(out$fitted, dat$y)
+```
+Amazingly, there are _no_ training errors. Usually with large number of variables relative to obs, it implies it is easy to find a hyperplane to fully separate the classes.
+
+Now let's see how it fits on the test:
+```{r}
+dat.te <- data.frame(x=Khan$xtest, y=as.factor(Khan$ytest))
+pred.te <- predict(out, newdata = dat.te)
+table(pred.te, dat.te$y)
+```
+It seems we've only misclassified 2 observations using cost = 10.
